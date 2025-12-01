@@ -15,7 +15,6 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://code-server.dev/install.sh | sh \
     && code-server --install-extension redhat.vscode-yaml \
     && code-server --install-extension cnbcool.cnb-welcome \
-    && code-server --install-extension eamodio.gitlens \
     && code-server --install-extension tencent-cloud.coding-copilot \
     && code-server --install-extension vscjava.vscode-java-pack \
     && echo done
