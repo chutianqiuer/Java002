@@ -1,10 +1,10 @@
 $:
   vscode:
     - docker:
-        build: ./Dockerfile
+        image: docker.cnb.cool/examples/language/java-21
       services:
         - vscode
         - docker
       stages:
         - name: ls
-          script: ls -al
+          script: ls
