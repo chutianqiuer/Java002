@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 项目组ID -->
+    <groupId>com.example</groupId>
+    <!-- 项目名称 -->
+    <artifactId>demo003-SpringBeans</artifactId>
+    <!-- 项目版本 -->
+    <version>1.0-SNAPSHOT</version>
+    <!-- 打包方式 -->
+    <packaging>jar</packaging>
+
+    <!-- 项目名称描述 -->
+    <name>demo003-SpringBeans</name>
+    <!-- 项目描述：Spring Bean管理深入学习示例 -->
+    <description>Spring Bean管理深入学习示例 - 涵盖Bean作用域、生命周期、初始化和销毁回调</description>
+
+    <!-- Java版本 -->
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Spring版本 -->
+        <spring.version>6.1.3</spring.version>
+    </properties>
+
+    <!-- 项目依赖 -->
+    <dependencies>
+        <!--
+            spring-context: Spring容器核心依赖
+            包含：BeanFactory、ApplicationContext、Bean定义、生命周期管理等功能
+            这是学习Spring Bean管理所必须的核心依赖
+        -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <!--
+            jakarta.annotation-api: JSR-250注解 API
+            包含：@PostConstruct、@PreDestroy 等注解
+            Spring 6.x 使用 Jakarta EE 9+ 的注解（原 javax.annotation）
+        -->
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+            <version>2.1.1</version>
+        </dependency>
+    </dependencies>
+
+    <!-- Maven构建配置 -->
+    <build>
+        <!-- 项目插件配置 -->
+        <plugins>
+            <!--
+                maven-compiler-plugin: Java编译器插件
+                配置Java版本为17
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 项目坐标 -->
+    <groupId>com.example</groupId>
+    <artifactId>demo011-SpringTask</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <!-- 项目名称和描述 -->
+    <name>Spring Task 任务调度与异步执行示例</name>
+    <description>深入学习Spring Task的任务调度和异步执行机制</description>
+
+    <!-- Java版本 -->
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring.version>6.1.3</spring.version>
+    </properties>
+
+    <!-- 依赖管理 -->
+    <dependencies>
+        <!--
+            spring-context: Spring核心上下文
+            包含Spring框架的核心功能，包括：
+            - BeanFactory:  Bean的创建和管理
+            - ApplicationContext:  Spring应用上下文
+            - 任务调度相关: @Scheduled, @Async等注解的支持
+            - 资源加载: Resource接口等
+        -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <!--
+            spring-core: Spring核心工具类
+            提供Spring框架的基础工具类，包括：
+            - ResourceUtils: 资源操作工具
+            - CollectionUtils: 集合操作工具
+            - ReflectionUtils: 反射工具
+            - etc.
+        -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <!--
+            spring-beans: Spring Bean相关
+            提供Bean的创建、属性注入等功能
+        -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <!--
+            commons-logging: 日志门面
+            作为日志框架的抽象层，统一日志API
+            SLF4J、Log4j等都可以作为其实现
+        -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.9</version>
+        </dependency>
+
+        <!--
+            SLF4J简单实现
+            提供日志输出实现
+        -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.9</version>
+        </dependency>
+
+        <!--
+            Jakarta Annotations API
+            包含@PostConstruct和@PreDestroy等注解
+            Spring 6使用jakarta.annotation包
+        -->
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
+        <!--
+            spring-context-support
+            包含任务调度的支持类，如ThreadPoolTaskScheduler
+        -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context-support</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <!-- JUnit 5 测试框架 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.10.1</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.10.1</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- 构建配置 -->
+    <build>
+        <plugins>
+            <!--
+                Maven Compiler Plugin
+                负责编译Java源代码
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <!--
+                Exec Maven Plugin
+                用于直接运行Java程序的Maven插件
+                配置mainClass为启动类
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>com.example.MainApp</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

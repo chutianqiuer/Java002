@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 项目groupId和artifactId -->
+    <groupId>com.example</groupId>
+    <artifactId>demo009-SpringCache</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <!-- 项目名称和描述 -->
+    <name>demo009-SpringCache</name>
+    <description>Spring Cache（缓存抽象）深入学习示例</description>
+
+    <!-- Spring Boot父工程依赖，管理Spring Boot版本 -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.7.18</version>
+        <relativePath/>
+    </parent>
+
+    <!-- 项目编码和JDK版本配置 -->
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>1.8</java.version>
+    </properties>
+
+    <!-- 项目依赖配置 -->
+    <dependencies>
+        <!-- Spring Boot Web依赖（包含spring-context） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Cache依赖：提供缓存抽象核心功能 -->
+        <!--
+            spring-context：Spring容器核心，包含IOC和缓存抽象层
+            spring-context-support：提供缓存抽象的具体实现支持（如EhCache、Caffeine等）
+        -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context-support</artifactId>
+        </dependency>
+
+        <!-- EhCache缓存实现依赖 -->
+        <!--
+            EhCache是一个成熟的、纯Java的进程内缓存框架
+            Spring通过spring-context-support集成EhCache
+        -->
+        <dependency>
+            <groupId>org.ehcache</groupId>
+            <artifactId>ehcache</artifactId>
+            <version>3.10.8</version>
+            <classifier>jakarta</classifier>
+        </dependency>
+
+        <!-- Caffeine缓存实现依赖 -->
+        <!--
+            Caffeine是一个高性能的Java缓存库，基于Google Guava
+            提供比EhCache更丰富的过期策略和淘汰算法
+        -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- JCache标准实现（JSR-107），用于与EhCache 3.x配合 -->
+        <!--
+            JCache是Java缓存的标准API规范（JSR-107）
+            javax.cache-api提供了标准缓存接口
+        -->
+        <dependency>
+            <groupId>javax.cache</groupId>
+            <artifactId>cache-api</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+
+        <!-- Spring Boot缓存 starter，自动配置缓存管理器 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- Lombok依赖，简化Java代码（可选，但推荐使用） -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring Boot测试依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- Maven构建配置 -->
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven插件，打包可执行JAR -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!-- Maven编译器插件，指定Java版本 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

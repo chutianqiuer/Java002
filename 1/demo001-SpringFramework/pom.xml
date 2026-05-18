@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Maven项目的配置文件，定义了项目的基本信息和依赖关系
+
+    为什么需要pom.xml？
+    - pom.xml 是 Maven 项目的核心配置文件
+    - 它告诉 Maven："这个项目叫什么名字？需要哪些依赖？如何构建？"
+    - 我们在这里声明需要 Spring Framework 的依赖，Maven 会自动下载并管理它们
+
+    几点说明：
+    1. modelVersion: 指定 pom.xml 遵循的 Maven 模型版本，固定为 4.0.0
+    2. groupId: 项目的组织标识，通常使用反向域名（如 com.example）
+    3. artifactId: 项目的名称
+    4. version: 项目版本号
+    5. packaging: 打包方式，jar 表示生成 Java 归档文件
+    6. dependencies: 项目依赖列表
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 项目的基本信息 -->
+    <groupId>com.example</groupId>
+    <artifactId>demo001-SpringFramework</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <!-- 项目的显示名称和描述，方便阅读 -->
+    <name>demo001-SpringFramework</name>
+    <description>Spring Framework 基础入门示例 - 演示 IoC 容器和依赖注入</description>
+
+    <!--
+        properties 部分定义了一些变量，方便后续引用和统一管理版本号
+        这样当需要升级 Spring 版本时，只需要改这一个地方
+    -->
+    <properties>
+        <!-- 指定项目编译时使用的 Java 版本 -->
+        <java.version>1.8</java.version>
+        <!-- 指定项目源码的编码方式为 UTF-8 -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Spring Framework 的版本号，我们会使用这个版本 -->
+        <spring.version>5.3.30</spring.version>
+    </properties>
+
+    <!--
+        dependencies 部分定义了项目需要的所有依赖
+
+        什么是依赖？
+        - 想象你要做一道菜，需要食材和厨具
+        - 依赖就是项目需要的"食材和厨具"
+        - Spring Framework 就是一个强大的"工具箱"，我们引入它来获得各种功能
+
+        spring-context 是什么？
+        - 这是 Spring Framework 的核心模块之一
+        - 它包含了 Spring IoC 容器（控制反转容器）
+        - IoC 容器是 Spring 最核心的功能，它可以帮我们管理对象的创建和依赖关系
+        - 简单理解：有了它，Spring 就能帮我们"new"对象，并自动处理对象之间的依赖
+    -->
+    <dependencies>
+        <!-- Spring Context 依赖 -->
+        <dependency>
+            <!-- groupId: 这个依赖属于哪个组织/项目，spring-context 属于 org.springframework -->
+            <groupId>org.springframework</groupId>
+            <!-- artifactId: 具体要用的库名称 -->
+            <artifactId>spring-context</artifactId>
+            <!-- version: 指定要使用的版本号，我们使用在 properties 中定义的版本 -->
+            <version>${spring.version}</version>
+        </dependency>
+    </dependencies>
+
+    <!--
+        build 部分定义了 Maven 构建项目时的配置
+
+        plugins 部分定义了构建过程中使用的插件
+        maven-compiler-plugin 负责编译 Java 源码
+    -->
+    <build>
+        <plugins>
+            <!-- Maven Compiler Plugin：用于编译 Java 源码 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <!-- 指定编译使用的 Java 版本 -->
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <!-- 指定源码编码方式 -->
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

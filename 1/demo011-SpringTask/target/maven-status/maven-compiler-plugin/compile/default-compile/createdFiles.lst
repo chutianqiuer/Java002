@@ -1,0 +1,8 @@
+com/example/config/TaskConfig.class
+com/example/model/TaskResult.class
+com/example/async/AsyncService.class
+com/example/task/CronScheduledTask.class
+com/example/task/DynamicScheduledTask.class
+com/example/MainApp.class
+com/example/async/AsyncConfig.class
+com/example/task/SimpleScheduledTask.class

@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  EhCache 3.x 配置文件
+
+  【EhCache简介】
+  EhCache是一个纯Java的进程内缓存框架，被广泛应用于Hibernate、Spring等框架中。
+  EhCache 3.x完全重写了API，遵循JCache（JSR-107）标准。
+
+  【配置文件说明】
+  - config：根元素，设置缓存管理器配置
+  - cache：定义具体的缓存，包括存储位置、过期策略、淘汰策略等
+
+  【缓存核心概念】
+  1.堆内存储（heap）：存储在JVM堆内存中，访问速度快，但受JVM堆大小限制
+  2.堆外存储（offheap）：存储在堆外内存，容量大但访问速度慢
+  3.磁盘存储（disk）：存储在磁盘上，容量最大但访问最慢
+
+  【过期策略】
+  1. expireAfterWrite：写入后过期
+  2. expireAfterAccess：访问后过期
+  3. expireAfterCreateTime：创建时间过期
+
+  【淘汰策略】
+  1. LIRS：Low Inter-reference Recency Set，比LRU更优的算法
+  2. LRU：Least Recently Used，最近最少使用
+  3. FIFO：First In First Out，先进先出
+  4. NONE：不淘汰（容量满时拒绝写入）
+-->
+<config xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+        xmlns='http://www.ehcache.org/v3'
+        xsi:schemaLocation="http://www.ehcache.org/v3
+        http://www.ehcache.org/schema/ehcache-core-3.10.xsd">
+
+    <!--
+      【缓存管理器级别配置】
+      - alias：缓存管理器别名
+      - logger：日志适配器，默认使用SLF4J
+    -->
+    <cache alias="users">
+        <!--
+          【堆内存储配置】
+          - unit：数量单位，可选 ENTRIES（条目数）或 BYTES（字节数）
+          - value：堆内存储容量
+          【示例】
+          - <heap unit="entries">1000</heap>：最多存储1000个条目
+          - <heap unit="MB">100</heap>：最多使用100MB堆内存
+        -->
+        <heap unit="entries">1000</heap>
+
+        <!--
+          【过期策略配置】
+          - expireAfterWrite：数据写入后多长时间过期
+          - expireAfterAccess：数据最后一次访问后多长时间过期
+          - expireAfterCreateTime：数据创建后多长时间过期（EhCache 3.x特有）
+
+          【时间单位】
+          - ns：纳秒
+          - mus：微秒
+          - ms：毫秒
+          - s：秒
+          - m：分钟
+          - h：小时
+          - d：天
+
+          【示例】
+          - <expiry><ttl unit="s">3600</ttl></expiry>：1小时过期
+        -->
+        <expiry>
+            <!-- 用户数据：写入后30分钟过期 -->
+            <ttl unit="m">30</ttl>
+        </expiry>
+
+        <!--
+          【淘汰策略配置】
+          - 使用<LIRS>替代默认的LRU，在高并发场景下性能更好
+          - 其他选项：LRU、FIFO、NONE
+        -->
+        <lists>
+            <LRU/>
+        </lists>
+
+        <!--
+          【堆外存储配置】（可选）
+          - 用于存储超出堆内容量但仍需要在内存中的数据
+          - 堆外内存在JVM堆外，访问速度比堆内慢但比磁盘快
+          - 需要配置-XX:MaxDirectMemorySize
+        -->
+        <!--
+        <offheap unit="MB">100</offheap>
+        -->
+
+        <!--
+          【磁盘持久化配置】（可选）
+          - 用于在JVM重启后恢复缓存数据
+          - path：持久化文件存储路径
+          - maxHeapSize：磁盘存储的最大容量（0表示不限制）
+        -->
+        <!--
+        <persistence directory="userCaches" maxHeapSize="10 GB"/>
+        -->
+    </cache>
+
+    <!--
+      【产品信息缓存】
+      - 特点：数据量大、更新频率低
+      - 配置：较大容量、较长过期时间
+    -->
+    <cache alias="products">
+        <heap unit="entries">5000</heap>
+        <expiry>
+            <!-- 产品信息：写入后2小时过期 -->
+            <ttl unit="h">2</ttl>
+        </expiry>
+        <lists>
+            <LRU/>
+        </lists>
+    </cache>
+
+    <!--
+      【用户详情缓存】
+      - 特点：访问频繁、数据量中等
+      - 配置：中等容量、中等过期时间
+    -->
+    <cache alias="userDetail">
+        <heap unit="entries">2000</heap>
+        <expiry>
+            <!-- 用户详情：写入后1小时过期 -->
+            <ttl unit="h">1</ttl>
+        </expiry>
+        <lists>
+            <LRU/>
+        </lists>
+    </cache>
+
+    <!--
+      【用户索引缓存】
+      - 特点：key是用户名，value是用户ID
+      - 配置：中等容量、较长过期时间
+    -->
+    <cache alias="userIndex">
+        <heap unit="entries">2000</heap>
+        <expiry>
+            <!-- 用户索引：写入后30分钟过期 -->
+            <ttl unit="m">30</ttl>
+        </expiry>
+        <lists>
+            <LRU/>
+        </lists>
+    </cache>
+
+    <!--
+      【用户列表缓存】
+      - 特点：数据量大、变更时需要整体清除
+      - 配置：使用allEntries=true清除所有
+    -->
+    <cache alias="userList">
+        <heap unit="entries">100</heap>
+        <expiry>
+            <!-- 用户列表：写入后10分钟过期 -->
+            <ttl unit="m">10</ttl>
+        </expiry>
+        <lists>
+            <LRU/>
+        </lists>
+    </cache>
+
+    <!--
+      【产品信息缓存 - 多级缓存演示用】
+      - 特点：支持并发读取、热点数据多
+      - 配置：较大容量、较长过期时间
+    -->
+    <cache alias="productInfo">
+        <heap unit="entries">3000</heap>
+        <expiry>
+            <!-- 产品信息：写入后1小时过期 -->
+            <ttl unit="h">1</ttl>
+        </expiry>
+        <lists>
+            <LRU/>
+        </lists>
+    </cache>
+
+    <!--
+      【Spring Cache内部缓存】
+      - Spring在启动时会自动创建这些缓存
+      - 用于@Cacheable等注解的缓存操作
+    -->
+    <cache alias="user">
+        <heap unit="entries">1000</heap>
+        <expiry>
+            <ttl unit="m">30</ttl>
+        </expiry>
+        <lists>
+            <LRU/>
+        </lists>
+    </cache>
+
+</config>
