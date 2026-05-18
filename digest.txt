@@ -1,9 +1,9 @@
 Directory structure:
 └── 2/
     ├── docker-compose.yml
-    ├── nacos-compose.yml
     ├── pom.xml
     ├── springboot-projects.md
+    ├── start-services.sh
     ├── doc/
     │   └── README.md
     ├── init-sql/
@@ -346,43 +346,6 @@ networks:
   mall-network:
     name: mall-network
     driver: bridge
-
-
-
-================================================
-FILE: nacos-compose.yml
-================================================
-version: '3.8'
-
-services:
-  # Nacos 2.x with MySQL
-  nacos:
-    image: nacos/nacos-server:v2.2.3
-    container_name: mall-nacos
-    restart: unless-stopped
-    environment:
-      MODE: standalone
-      SPRING_DATASOURCE_PLATFORM: mysql
-      MYSQL_SERVICE_HOST: springboot-mysql
-      MYSQL_SERVICE_PORT: 3306
-      MYSQL_SERVICE_DB_NAME: nacos_config
-      MYSQL_SERVICE_USER: root
-      MYSQL_SERVICE_PASSWORD: root123
-      MYSQL_SERVICE_DB_PARAM: characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&serverTimezone=Asia/Shanghai
-      TZ: Asia/Shanghai
-    ports:
-      - "8848:8848"
-      - "9848:9848"
-    volumes:
-      - nacos-data:/home/nacos/data
-    depends_on:
-      - springboot-mysql
-    networks:
-      - mall-network
-
-networks:
-  mall-network:
-    external: true
 
 
 
@@ -1019,6 +982,71 @@ java -jar admin/target/admin-1.0.0.jar
 用户名: admin
 密码: admin123
 ```
+
+
+
+================================================
+FILE: start-services.sh
+================================================
+#!/usr/bin/env bash
+set -e
+
+cd /workspace/2
+
+pkill -f "mall-.*1.0.0.jar" || true
+sleep 2
+
+mkdir -p /tmp/mall-logs
+
+start_service() {
+  local name=$1
+  local jar=$2
+  local log="/tmp/mall-logs/${name}.log"
+
+  echo "Starting ${name}..."
+  nohup java -jar "${jar}" > "${log}" 2>&1 < /dev/null &
+  echo $! > "/tmp/mall-logs/${name}.pid"
+}
+
+start_service mall-user mall-user/target/mall-user-1.0.0.jar
+start_service mall-product mall-product/target/mall-product-1.0.0.jar
+start_service mall-order mall-order/target/mall-order-1.0.0.jar
+start_service mall-payment mall-payment/target/mall-payment-1.0.0.jar
+start_service mall-admin mall-admin/target/mall-admin-1.0.0.jar
+
+sleep 20
+
+echo "=== Java processes ==="
+ps aux | grep "mall-.*1.0.0.jar" | grep -v grep || true
+
+echo ""
+echo "=== Service Health ==="
+echo "mall-user:"
+curl -s http://localhost:8081/api/user/list | head -c 120
+echo
+
+echo "mall-product:"
+curl -s http://localhost:8082/api/product/list | head -c 120
+echo
+
+echo "mall-order:"
+curl -s http://localhost:8083/api/order/list | head -c 120
+echo
+
+echo "mall-payment:"
+curl -s http://localhost:8084/api/payment/1 | head -c 120
+echo
+
+echo "mall-admin:"
+curl -s http://localhost:8085/api/admin/health | head -c 120
+echo
+
+echo ""
+echo "=== Nacos Registration ==="
+for svc in mall-user mall-product mall-order mall-payment mall-admin; do
+  count=$(curl -s "http://localhost:8848/nacos/v1/ns/instance/list?serviceName=${svc}" | grep -o '"healthy":true' | wc -l)
+  echo "${svc}: ${count} instance(s) healthy"
+done
 
 
 

@@ -4,9 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mall.common.entity.Order;
+import com.mall.common.entity.Product;
+import com.mall.common.entity.User;
 import com.mall.common.constants.OrderStatus;
+import com.mall.common.rpc.ProductRpcService;
+import com.mall.common.rpc.UserRpcService;
 import com.mall.order.mapper.OrderMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,7 +22,32 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class OrderService extends ServiceImpl<OrderMapper, Order> {
 
+    @DubboReference
+    private UserRpcService userRpcService;
+
+    @DubboReference
+    private ProductRpcService productRpcService;
+
     public Order createOrder(Order order) {
+        // Validate user exists via Dubbo RPC
+        User user = userRpcService.getUserById(order.getUserId());
+        if (user == null) {
+            throw new RuntimeException("User not found, userId: " + order.getUserId());
+        }
+
+        // Validate product exists and has enough stock via Dubbo RPC
+        Product product = productRpcService.getProductById(order.getProductId());
+        if (product == null) {
+            throw new RuntimeException("Product not found, productId: " + order.getProductId());
+        }
+
+        boolean hasStock = productRpcService.hasEnoughStock(order.getProductId(), order.getQuantity());
+        if (!hasStock) {
+            throw new RuntimeException("Insufficient stock, productId: " + order.getProductId());
+        }
+
+        // Calculate total amount
+        order.setTotalAmount(product.getPrice().multiply(java.math.BigDecimal.valueOf(order.getQuantity())));
         order.setOrderNo(generateOrderNo());
         order.setStatus(OrderStatus.PENDING);
         this.save(order);

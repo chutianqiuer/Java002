@@ -24,3 +24,14 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+dubbo:
+  application:
+    name: mall-user-dubbo
+  protocol:
+    name: dubbo
+    port: 20881
+  registry:
+    address: nacos://localhost:8848
+  scan:
+    base-packages: com.mall.user.rpc
