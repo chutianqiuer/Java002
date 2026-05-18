@@ -1,9 +1,0 @@
-com/example/di/EmailService.class
-com/example/di/Consumer.class
-com/example/ioc/CoffeeMaker.class
-com/example/di/MessageService.class
-com/example/di/SmsService.class
-com/example/ioc/TeaMaker.class
-com/example/ioc/Water.class
-com/example/MainApp.class
-com/example/config/AppConfig.class

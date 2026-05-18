@@ -11,7 +11,6 @@ import com.example.common.utils.BeanCopyUtils;
 import com.example.common.vo.PageVO;
 import com.example.common.vo.UserVO;
 import com.example.mapper.UserMapper;
-import com.example.mapper.repository.UserRepository;
 import com.example.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,17 +18,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserServiceImpl implements UserService {
 
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
+    public UserServiceImpl(UserMapper userMapper, PasswordEncoder passwordEncoder) {
+        this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public Long register(UserDTO userDTO) {
-        User existUser = userRepository.getMapper().selectOne(
+        User existUser = userMapper.selectOne(
             new LambdaQueryWrapper<User>().eq(User::getUsername, userDTO.getUsername())
         );
         if (existUser != null) {
@@ -38,12 +37,13 @@ public class UserServiceImpl implements UserService {
 
         User user = BeanCopyUtils.copyBean(userDTO, User.class);
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-        return userRepository.insert(user);
+        userMapper.insert(user);
+        return user.getId();
     }
 
     @Override
     public UserVO getById(Long id) {
-        User user = userRepository.getById(id);
+        User user = userMapper.selectById(id);
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
@@ -53,20 +53,20 @@ public class UserServiceImpl implements UserService {
     @Override
     public PageVO<UserVO> getPage(PageDTO pageDTO) {
         Page<User> page = new Page<>(pageDTO.getPage(), pageDTO.getPageSize());
-        IPage<User> result = userRepository.getMapper().selectPage(page, null);
+        IPage<User> result = userMapper.selectPage(page, null);
 
         PageVO<UserVO> pageVO = new PageVO<>();
         pageVO.setTotal(result.getTotal());
         pageVO.setRecords(BeanCopyUtils.copyBeanList(result.getRecords(), UserVO.class));
-        pageVO.setPage(result.getCurrent());
-        pageVO.setPageSize(result.getSize());
+        pageVO.setPage((int) result.getCurrent());
+        pageVO.setPageSize((int) result.getSize());
         pageVO.setTotalPages((int) result.getPages());
         return pageVO;
     }
 
     @Override
     public void update(UserDTO userDTO) {
-        User user = userRepository.getById(userDTO.getId());
+        User user = userMapper.selectById(userDTO.getId());
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
@@ -75,21 +75,21 @@ public class UserServiceImpl implements UserService {
         if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
             updateUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         }
-        userRepository.update(updateUser);
+        userMapper.updateById(updateUser);
     }
 
     @Override
     public void delete(Long id) {
-        userRepository.deleteById(id);
+        userMapper.deleteById(id);
     }
 
     @Override
     public void updateStatus(Long id, Integer status) {
-        User user = userRepository.getById(id);
+        User user = userMapper.selectById(id);
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
         user.setStatus(status);
-        userRepository.update(user);
+        userMapper.updateById(user);
     }
 }

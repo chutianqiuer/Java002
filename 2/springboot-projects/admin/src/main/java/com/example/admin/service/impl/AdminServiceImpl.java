@@ -1,11 +1,14 @@
 package com.example.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.admin.dto.AdminOrderDTO;
 import com.example.admin.dto.AdminProductDTO;
 import com.example.admin.dto.AdminUserDTO;
+import com.example.common.entity.Order;
 import com.example.common.entity.Product;
 import com.example.common.entity.User;
+import com.example.common.enums.OrderStatus;
 import com.example.common.exception.BusinessException;
 import com.example.common.utils.BeanCopyUtils;
 import com.example.common.vo.OrderVO;
@@ -15,32 +18,26 @@ import com.example.common.vo.UserVO;
 import com.example.mapper.OrderMapper;
 import com.example.mapper.ProductMapper;
 import com.example.mapper.UserMapper;
-import com.example.mapper.repository.ProductRepository;
-import com.example.mapper.repository.UserRepository;
 import com.example.service.OrderService;
 import com.example.admin.service.AdminService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 public class AdminServiceImpl implements AdminService {
 
-    private final UserRepository userRepository;
     private final UserMapper userMapper;
-    private final ProductRepository productRepository;
     private final ProductMapper productMapper;
     private final OrderMapper orderMapper;
     private final OrderService orderService;
 
-    public AdminServiceImpl(UserRepository userRepository,
-                           UserMapper userMapper,
-                           ProductRepository productRepository,
+    public AdminServiceImpl(UserMapper userMapper,
                            ProductMapper productMapper,
                            OrderMapper orderMapper,
                            OrderService orderService) {
-        this.userRepository = userRepository;
         this.userMapper = userMapper;
-        this.productRepository = productRepository;
         this.productMapper = productMapper;
         this.orderMapper = orderMapper;
         this.orderService = orderService;
@@ -62,13 +59,11 @@ public class AdminServiceImpl implements AdminService {
 
         wrapper.orderByDesc(User::getCreateTime);
 
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<User> page =
-            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
-                adminUserDTO.getPage() != null ? adminUserDTO.getPage() : 1,
-                adminUserDTO.getPageSize() != null ? adminUserDTO.getPageSize() : 10
-            );
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<User> result =
-            userMapper.selectPage(page, wrapper);
+        Page<User> page = new Page<>(
+            adminUserDTO.getPage() != null ? adminUserDTO.getPage() : 1,
+            adminUserDTO.getPageSize() != null ? adminUserDTO.getPageSize() : 10
+        );
+        Page<User> result = userMapper.selectPage(page, wrapper);
 
         PageVO<UserVO> pageVO = new PageVO<>();
         pageVO.setTotal(result.getTotal());
@@ -89,24 +84,24 @@ public class AdminServiceImpl implements AdminService {
         }
 
         User user = BeanCopyUtils.copyBean(adminUserDTO, User.class);
-        user.setPassword("$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH"); // default password
-        userRepository.insert(user);
+        user.setPassword("$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH");
+        userMapper.insert(user);
     }
 
     @Override
     public void updateUser(AdminUserDTO adminUserDTO) {
-        User user = userRepository.getById(adminUserDTO.getId());
+        User user = userMapper.selectById(adminUserDTO.getId());
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
 
         User updateUser = BeanCopyUtils.copyBean(adminUserDTO, User.class);
-        userRepository.update(updateUser);
+        userMapper.updateById(updateUser);
     }
 
     @Override
     public void deleteUser(Long id) {
-        userRepository.deleteById(id);
+        userMapper.deleteById(id);
     }
 
     @Override
@@ -125,13 +120,11 @@ public class AdminServiceImpl implements AdminService {
 
         wrapper.orderByDesc(Product::getCreateTime);
 
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Product> page =
-            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
-                adminProductDTO.getPage() != null ? adminProductDTO.getPage() : 1,
-                adminProductDTO.getPageSize() != null ? adminProductDTO.getPageSize() : 10
-            );
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Product> result =
-            productMapper.selectPage(page, wrapper);
+        Page<Product> page = new Page<>(
+            adminProductDTO.getPage() != null ? adminProductDTO.getPage() : 1,
+            adminProductDTO.getPageSize() != null ? adminProductDTO.getPageSize() : 10
+        );
+        Page<Product> result = productMapper.selectPage(page, wrapper);
 
         PageVO<ProductVO> pageVO = new PageVO<>();
         pageVO.setTotal(result.getTotal());
@@ -145,23 +138,24 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public Long createProduct(AdminProductDTO adminProductDTO) {
         Product product = BeanCopyUtils.copyBean(adminProductDTO, Product.class);
-        return productRepository.insert(product);
+        productMapper.insert(product);
+        return product.getId();
     }
 
     @Override
     public void updateProduct(AdminProductDTO adminProductDTO) {
-        Product product = productRepository.getById(adminProductDTO.getId());
+        Product product = productMapper.selectById(adminProductDTO.getId());
         if (product == null) {
             throw new BusinessException("商品不存在");
         }
 
         Product updateProduct = BeanCopyUtils.copyBean(adminProductDTO, Product.class);
-        productRepository.update(updateProduct);
+        productMapper.updateById(updateProduct);
     }
 
     @Override
     public void deleteProduct(Long id) {
-        productRepository.deleteById(id);
+        productMapper.deleteById(id);
     }
 
     @Override
@@ -172,18 +166,19 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateOrderStatus(Long id, Integer status) {
-        com.example.common.entity.Order order = new com.example.common.entity.Order();
-        order.setId(id);
-        order.setStatus(com.example.common.enums.OrderStatus.values()[status]);
+        Order order = orderMapper.selectById(id);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+
+        order.setStatus(OrderStatus.values()[status]);
 
         switch (status) {
-            case 3: // SHIPPED
-                order.setShipTime(java.time.LocalDateTime.now());
+            case 3:
+                order.setShipTime(LocalDateTime.now());
                 break;
-            case 4: // COMPLETED
-                order.setCompleteTime(java.time.LocalDateTime.now());
-                break;
-            case 5: // CANCELLED
+            case 4:
+                order.setCompleteTime(LocalDateTime.now());
                 break;
             default:
                 break;

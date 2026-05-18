@@ -2,7 +2,7 @@ package com.example.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.example.common.dto.PageDTO;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.common.dto.ProductDTO;
 import com.example.common.entity.Product;
 import com.example.common.exception.BusinessException;
@@ -10,7 +10,6 @@ import com.example.common.utils.BeanCopyUtils;
 import com.example.common.vo.PageVO;
 import com.example.common.vo.ProductVO;
 import com.example.mapper.ProductMapper;
-import com.example.mapper.repository.ProductRepository;
 import com.example.service.ProductService;
 import org.springframework.stereotype.Service;
 
@@ -20,23 +19,22 @@ import java.util.stream.Collectors;
 @Service
 public class ProductServiceImpl implements ProductService {
 
-    private final ProductRepository productRepository;
     private final ProductMapper productMapper;
 
-    public ProductServiceImpl(ProductRepository productRepository, ProductMapper productMapper) {
-        this.productRepository = productRepository;
+    public ProductServiceImpl(ProductMapper productMapper) {
         this.productMapper = productMapper;
     }
 
     @Override
     public Long create(ProductDTO productDTO) {
         Product product = BeanCopyUtils.copyBean(productDTO, Product.class);
-        return productRepository.insert(product);
+        productMapper.insert(product);
+        return product.getId();
     }
 
     @Override
     public ProductVO getById(Long id) {
-        Product product = productRepository.getById(id);
+        Product product = productMapper.selectById(id);
         if (product == null) {
             throw new BusinessException("商品不存在");
         }
@@ -59,13 +57,11 @@ public class ProductServiceImpl implements ProductService {
 
         wrapper.orderByDesc(Product::getCreateTime);
 
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Product> page =
-            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
-                productDTO.getPage() != null ? productDTO.getPage() : 1,
-                productDTO.getPageSize() != null ? productDTO.getPageSize() : 10
-            );
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Product> result =
-            productMapper.selectPage(page, wrapper);
+        Page<Product> page = new Page<>(
+            productDTO.getPage() != null ? productDTO.getPage() : 1,
+            productDTO.getPageSize() != null ? productDTO.getPageSize() : 10
+        );
+        Page<Product> result = productMapper.selectPage(page, wrapper);
 
         PageVO<ProductVO> pageVO = new PageVO<>();
         pageVO.setTotal(result.getTotal());
@@ -89,23 +85,23 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void update(ProductDTO productDTO) {
-        Product product = productRepository.getById(productDTO.getId());
+        Product product = productMapper.selectById(productDTO.getId());
         if (product == null) {
             throw new BusinessException("商品不存在");
         }
 
         Product updateProduct = BeanCopyUtils.copyBean(productDTO, Product.class);
-        productRepository.update(updateProduct);
+        productMapper.updateById(updateProduct);
     }
 
     @Override
     public void delete(Long id) {
-        productRepository.deleteById(id);
+        productMapper.deleteById(id);
     }
 
     @Override
     public void updateStock(Long id, Integer quantity) {
-        Product product = productRepository.getById(id);
+        Product product = productMapper.selectById(id);
         if (product == null) {
             throw new BusinessException("商品不存在");
         }

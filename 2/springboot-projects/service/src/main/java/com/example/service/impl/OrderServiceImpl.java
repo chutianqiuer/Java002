@@ -1,7 +1,7 @@
 package com.example.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.common.dto.CreateOrderDTO;
 import com.example.common.dto.OrderDTO;
 import com.example.common.entity.Order;
@@ -16,10 +16,7 @@ import com.example.common.vo.PageVO;
 import com.example.mapper.OrderItemMapper;
 import com.example.mapper.OrderMapper;
 import com.example.mapper.ProductMapper;
-import com.example.mapper.repository.OrderItemRepository;
-import com.example.mapper.repository.OrderRepository;
 import com.example.service.OrderService;
-import com.github.pagehelper.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,19 +30,13 @@ import java.util.stream.Collectors;
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final ProductMapper productMapper;
 
-    public OrderServiceImpl(OrderRepository orderRepository,
-                           OrderItemRepository orderItemRepository,
-                           OrderMapper orderMapper,
+    public OrderServiceImpl(OrderMapper orderMapper,
                            OrderItemMapper orderItemMapper,
                            ProductMapper productMapper) {
-        this.orderRepository = orderRepository;
-        this.orderItemRepository = orderItemRepository;
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.productMapper = productMapper;
@@ -65,7 +56,7 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalQuantity(0);
         order.setTotalAmount(BigDecimal.ZERO);
 
-        orderRepository.insert(order);
+        orderMapper.insert(order);
 
         BigDecimal totalAmount = BigDecimal.ZERO;
         int totalQuantity = 0;
@@ -93,23 +84,24 @@ public class OrderServiceImpl implements OrderService {
             totalAmount = totalAmount.add(orderItem.getSubtotal());
             totalQuantity += itemDTO.getQuantity();
 
-            // Deduct stock
             product.setStock(product.getStock() - itemDTO.getQuantity());
             productMapper.updateById(product);
         }
 
-        orderItemRepository.getMapper().insertBatch(orderItems);
+        for (OrderItem item : orderItems) {
+            orderItemMapper.insert(item);
+        }
 
         order.setTotalAmount(totalAmount);
         order.setTotalQuantity(totalQuantity);
-        orderRepository.update(order);
+        orderMapper.updateById(order);
 
         return getById(order.getId());
     }
 
     @Override
     public OrderVO getById(Long id) {
-        Order order = orderRepository.getById(id);
+        Order order = orderMapper.selectById(id);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
@@ -149,10 +141,8 @@ public class OrderServiceImpl implements OrderService {
 
         wrapper.orderByDesc(Order::getCreateTime);
 
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Order> page =
-            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(orderDTO.getPage(), orderDTO.getPageSize());
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Order> result =
-            orderMapper.selectPage(page, wrapper);
+        Page<Order> page = new Page<>(orderDTO.getPage(), orderDTO.getPageSize());
+        Page<Order> result = orderMapper.selectPage(page, wrapper);
 
         PageVO<OrderVO> pageVO = new PageVO<>();
         pageVO.setTotal(result.getTotal());
@@ -166,7 +156,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void cancel(Long id) {
-        Order order = orderRepository.getById(id);
+        Order order = orderMapper.selectById(id);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
@@ -174,7 +164,6 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException("只能取消待支付订单");
         }
 
-        // Restore stock
         List<OrderItem> items = orderItemMapper.selectList(
             new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, id)
         );
@@ -185,12 +174,12 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setStatus(OrderStatus.CANCELLED);
-        orderRepository.update(order);
+        orderMapper.updateById(order);
     }
 
     @Override
     public void pay(Long id, String paymentMethod) {
-        Order order = orderRepository.getById(id);
+        Order order = orderMapper.selectById(id);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
@@ -200,12 +189,12 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(OrderStatus.PAID);
         order.setPayTime(LocalDateTime.now());
-        orderRepository.update(order);
+        orderMapper.updateById(order);
     }
 
     @Override
     public void ship(Long id) {
-        Order order = orderRepository.getById(id);
+        Order order = orderMapper.selectById(id);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
@@ -215,12 +204,12 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(OrderStatus.SHIPPED);
         order.setShipTime(LocalDateTime.now());
-        orderRepository.update(order);
+        orderMapper.updateById(order);
     }
 
     @Override
     public void confirm(Long id) {
-        Order order = orderRepository.getById(id);
+        Order order = orderMapper.selectById(id);
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
@@ -230,7 +219,7 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(OrderStatus.COMPLETED);
         order.setCompleteTime(LocalDateTime.now());
-        orderRepository.update(order);
+        orderMapper.updateById(order);
     }
 
     private OrderVO convertToVO(Order order) {

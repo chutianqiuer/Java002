@@ -2,11 +2,13 @@ package com.example.common.vo;
 
 import com.example.common.enums.OrderStatus;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class OrderVO extends BaseVO {
     private String orderNo;
     private Long userId;

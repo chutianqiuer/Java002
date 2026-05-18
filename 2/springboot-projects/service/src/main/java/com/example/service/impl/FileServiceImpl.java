@@ -5,7 +5,7 @@ import com.example.common.enums.FileType;
 import com.example.common.exception.BusinessException;
 import com.example.common.utils.BeanCopyUtils;
 import com.example.common.vo.FileVO;
-import com.example.mapper.repository.SysFileRepository;
+import com.example.mapper.SysFileMapper;
 import com.example.service.FileService;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,13 +21,13 @@ import java.util.UUID;
 @Service
 public class FileServiceImpl implements FileService {
 
-    private final SysFileRepository fileRepository;
+    private final SysFileMapper sysFileMapper;
 
     @Value("${file.upload-path:/tmp/uploads}")
     private String uploadPath;
 
-    public FileServiceImpl(SysFileRepository fileRepository) {
-        this.fileRepository = fileRepository;
+    public FileServiceImpl(SysFileMapper sysFileMapper) {
+        this.sysFileMapper = sysFileMapper;
     }
 
     @Override
@@ -62,7 +62,7 @@ public class FileServiceImpl implements FileService {
             sysFile.setMimeType(file.getContentType());
             sysFile.setFileType(determineFileType(extension));
 
-            fileRepository.insert(sysFile);
+            sysFileMapper.insert(sysFile);
 
             return BeanCopyUtils.copyBean(sysFile, FileVO.class);
         } catch (IOException e) {
@@ -72,27 +72,26 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public void delete(Long id) {
-        SysFile file = fileRepository.getById(id);
-        if (file == null) {
+        SysFile sysFile = sysFileMapper.selectById(id);
+        if (sysFile == null) {
             throw new BusinessException("文件不存在");
         }
 
-        // Delete physical file
-        File physicalFile = new File(file.getPath());
+        File physicalFile = new File(sysFile.getPath());
         if (physicalFile.exists()) {
             physicalFile.delete();
         }
 
-        fileRepository.deleteById(id);
+        sysFileMapper.deleteById(id);
     }
 
     @Override
     public FileVO getById(Long id) {
-        SysFile file = fileRepository.getById(id);
-        if (file == null) {
+        SysFile sysFile = sysFileMapper.selectById(id);
+        if (sysFile == null) {
             throw new BusinessException("文件不存在");
         }
-        return BeanCopyUtils.copyBean(file, FileVO.class);
+        return BeanCopyUtils.copyBean(sysFile, FileVO.class);
     }
 
     private FileType determineFileType(String extension) {
