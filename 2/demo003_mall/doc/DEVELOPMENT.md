@@ -157,14 +157,70 @@ wait_http() {
 |--------|------|
 | `d16aba9` | feat: Step 2.5 稳定性修补 - 顺序启动 + 库存补偿 + 硬验收 |
 | `3d27340` | feat: 更新 test-order-flow.sh 添加 MySQL inventory_logs 验证 |
-| `5577fdf` | feat: 实现真实下单业务闭环 (Step 2.5) |
+| `d16aba9` | feat: Step 2.5 稳定性修补 - 顺序启动 + 库存补偿 + 硬验收 |
+| `f22cfa5` | feat: Step 3 RocketMQ订单事件 (demo004) |
+
+---
+
+## Step 3: RocketMQ 订单事件
+
+### 目标
+
+mall-order 创建订单成功后，发送 OrderCreatedEvent 到 RocketMQ。
+mall-admin 消费 OrderCreatedEvent，并写入 operation_logs 表。
+
+### 实现内容
+
+#### 1. Docker Compose 增加 RocketMQ
+
+位置：`docker-compose.yml`
+
+- rocketmq-namesrv: RocketMQ NameServer (端口9876)
+- rocketmq-broker: RocketMQ Broker (端口10911)
+
+#### 2. OrderCreatedEvent 事件类
+
+位置：`mall-common/src/main/java/com/mall/common/event/OrderCreatedEvent.java`
+
+字段：orderNo, userId, productId, quantity, totalAmount, createTime
+
+#### 3. OrderEventProducer 事件发送
+
+位置：`mall-order/src/main/java/com/mall/order/service/OrderEventProducer.java`
+
+- 注入 RocketMQTemplate
+- 发送 OrderCreatedEvent 到 topic: order-created-topic
+- 发送失败只记录日志，不影响订单创建主流程
+
+#### 4. OrderCreatedEventConsumer 事件消费
+
+位置：`mall-admin/src/main/java/com/mall/admin/listener/OrderCreatedEventConsumer.java`
+
+- 监听 topic: order-created-topic
+- consumerGroup: mall-admin-order-created-consumer
+- 收到事件后写入 OperationLog
+
+#### 5. 配置
+
+mall-order:
+```yaml
+rocketmq:
+  name-server: localhost:9876
+  producer:
+    group: mall-order-producer
+```
+
+mall-admin:
+```yaml
+rocketmq:
+  name-server: localhost:9876
+```
 
 ---
 
 ## 禁止事项
 
 - 禁止引入 Sentinel
-- 禁止引入 RocketMQ
 - 禁止引入 Seata
 - 禁止重构项目结构
 - 禁止新建大量 DTO/VO
@@ -178,7 +234,7 @@ wait_http() {
 按照规划路线：
 
 1. Step 2.5 ✓ 真实下单业务闭环 - **已完成**
-2. Step 3: RocketMQ 订单事件
+2. Step 3 ✓ RocketMQ 订单事件 - **已完成**
 3. Step 4: Seata 分布式事务
 4. Step 5: Sentinel 限流熔断
 5. Step 6: XXL-JOB 取消超时订单
@@ -194,6 +250,12 @@ wait_http() {
 ```bash
 cd /workspace/2/demo003_mall
 
+# 启动基础设施（RocketMQ）
+docker compose up -d
+
+# 手动创建topic（首次需要）
+docker exec mall-rocketmq-namesrv sh mqadmin updateTopic -n localhost:9876 -t order-created-topic -c DefaultCluster -r 4 -w 4
+
 # 编译
 mvn clean package -DskipTests
 
@@ -202,4 +264,5 @@ bash start-services.sh
 
 # 执行测试
 bash scripts/test-order-flow.sh
+bash scripts/test-rocketmq-order-event.sh
 ```
