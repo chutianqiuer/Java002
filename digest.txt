@@ -411,25 +411,30 @@ services:
     image: seataio/seata-server:1.7.0
     container_name: mall-seata-server
     restart: unless-stopped
-    network_mode: host
     environment:
       TZ: Asia/Shanghai
       STORE_MODE: file
-      SERVER_SPRING_BOOT_CONFIG_NAME: registry
-      SEATA_CONFIG_USEFILE: "false"
+      SEATA_IP: 0.0.0.0
+      SEATA_PORT: 8091
       SEATA_REGISTRY_TYPE: nacos
-      SEATA_REGISTRY_NACOS_APPLICATION: seata-server
-      SEATA_REGISTRY_NACOS_SERVER_ADDR: 127.0.0.1
-      SEATA_REGISTRY_NACOS_PORT: 8848
-      SEATA_REGISTRY_NACOS_GROUP: DEFAULT_GROUP
-      SEATA_REGISTRY_NACOS_NAMESPACE: ""
+      SEATA_REGISTRY_NAcos_SERVER_ADDR: nacos
+      SEATA_REGISTRY_NAcos_SERVER_PORT: 8848
+      SEATA_REGISTRY_NAcos_APPLICATION: seata-server
+      SEATA_REGISTRY_NAcos_GROUP: DEFAULT_GROUP
+      SEATA_REGISTRY_NAcos_NAMESPACE: ""
+      SEATA_REGISTRY_NAcos_CLUSTER: default
+      SEATA_CONFIG_TYPE: file
+    ports:
+      - "8091:8091"
+      - "7091:7091"
     volumes:
-      - ./seata/registry.conf:/root/seata/config/registry.conf
-      - ./seata/file.conf:/root/seata/config/file.conf
-      - seata-data:/root/seata/logs
+      - ./seata/registry.conf:/seata-server/resources/registry.conf
+      - ./seata/file.conf:/seata-server/resources/file.conf
+      - seata-data:/seata-server/logs
+    networks:
+      - mall-network
     depends_on:
-      nacos:
-        condition: service_started
+      - nacos
 
 volumes:
   mysql-data:
@@ -1318,8 +1323,8 @@ CREATE TABLE IF NOT EXISTS undo_log (
     context VARCHAR(128) NOT NULL,
     rollback_info LONGTEXT NOT NULL,
     log_status INT NOT NULL,
-    log_created_at DATETIME NOT NULL,
-    log_modified_at DATETIME NOT NULL,
+    log_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    log_modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY ux_undo_log (xid, branch_id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1359,62 +1364,13 @@ CREATE TABLE IF NOT EXISTS undo_log (
     context VARCHAR(128) NOT NULL,
     rollback_info LONGTEXT NOT NULL,
     log_status INT NOT NULL,
-    log_created_at DATETIME NOT NULL,
-    log_modified_at DATETIME NOT NULL,
+    log_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    log_modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY ux_undo_log (xid, branch_id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Seata Server tables for mall_order (used by Seata Server to store transaction metadata)
-CREATE TABLE IF NOT EXISTS global_table (
-    xid VARCHAR(128) NOT NULL,
-    transaction_id BIGINT NOT NULL,
-    status INT NOT NULL,
-    application_id VARCHAR(64),
-    transaction_service_group VARCHAR(64),
-    transaction_name VARCHAR(64),
-    timeout INT,
-    begin_time BIGINT,
-    application_data VARCHAR(500),
-    PRIMARY KEY (xid),
-    KEY idx_gmt_modified_status (status),
-    KEY idx_gmt_modified_time (begin_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS branch_table (
-    xid VARCHAR(128) NOT NULL,
-    branch_id BIGINT NOT NULL,
-    transaction_id BIGINT NOT NULL,
-    resource_group_id VARCHAR(32),
-    resource_id VARCHAR(256),
-    branch_type VARCHAR(64),
-    status INT NOT NULL,
-    begin_time BIGINT,
-    app_data VARCHAR(500),
-    PRIMARY KEY (branch_id),
-    KEY idx_xid_status (xid, status),
-    KEY idx_transaction_id (transaction_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS lock_table (
-    row_key VARCHAR(128) NOT NULL,
-    xid VARCHAR(96),
-    transaction_id BIGINT,
-    branch_id BIGINT,
-    resource_id VARCHAR(256),
-    table_name VARCHAR(50),
-    pk VARCHAR(128),
-    status INT NOT NULL DEFAULT 0 COMMENT '0:unlocked, 1:locked',
-    PRIMARY KEY (row_key),
-    KEY idx_lock_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS distributed_lock (
-    lock_key VARCHAR(128) NOT NULL,
-    lock_value VARCHAR(512),
-    expire BIGINT,
-    PRIMARY KEY (lock_key)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Note: Seata Server is using file mode, so global_table/branch_table/lock_table are not needed here
 
 USE mall_payment;
 
@@ -2808,19 +2764,21 @@ rocketmq:
 seata:
   enabled: true
   application-id: ${spring.application.name}
-  tx-service-group: my_seata_tx_group
+  tx-service-group: default_tx_group
   enable-auto-data-source-proxy: true
   registry:
     type: nacos
     nacos:
       server-addr: localhost:8848
-      group: DEFAULT_GROUP
       application: seata-server
-  config:
-    type: nacos
-    nacos:
-      server-addr: localhost:8848
       group: DEFAULT_GROUP
+  config:
+    type: file
+  service:
+    vgroupMapping:
+      default_tx_group: default
+    default:
+      grouplist: localhost:8091
 
 
 
@@ -3546,19 +3504,21 @@ dubbo:
 seata:
   enabled: true
   application-id: ${spring.application.name}
-  tx-service-group: my_seata_tx_group
+  tx-service-group: default_tx_group
   enable-auto-data-source-proxy: true
   registry:
     type: nacos
     nacos:
       server-addr: localhost:8848
-      group: DEFAULT_GROUP
       application: seata-server
-  config:
-    type: nacos
-    nacos:
-      server-addr: localhost:8848
       group: DEFAULT_GROUP
+  config:
+    type: file
+  service:
+    vgroupMapping:
+      default_tx_group: default
+    default:
+      grouplist: localhost:8091
 
 
 
@@ -4187,16 +4147,13 @@ fi
 echo "✓ Seata server is running"
 echo ""
 
-# 2. Check Seata logs to verify configuration loaded
-echo "=== 2. 检查 Seata Server 配置加载状态 ==="
+# 2. Check Seata logs to verify it started properly
+echo "=== 2. 检查 Seata Server 启动日志 ==="
 SEATA_LOGS=$(docker logs mall-seata-server --tail 50 2>&1)
-echo "$SEATA_LOGS" | tail -20
-if echo "$SEATA_LOGS" | grep -q "Config successful"; then
-  echo "✓ Seata configuration loaded successfully"
-elif echo "$SEATA_LOGS" | grep -q "server started"; then
-  echo "✓ Seata server started (config may be from Nacos)"
+if echo "$SEATA_LOGS" | grep -q "server started"; then
+  echo "✓ Seata server started successfully"
 else
-  echo "WARNING: Could not verify config load status from logs"
+  echo "WARNING: Could not verify server started from logs"
 fi
 echo ""
 
@@ -4244,7 +4201,7 @@ fi
 echo "AFTER_STOCK: $AFTER_STOCK"
 echo ""
 
-# 7. Verify stock was rolled back
+# 7. Verify stock was rolled back (核心断言)
 echo "=== 7. 验证库存已回滚 ==="
 if [ "$AFTER_STOCK" != "$BEFORE_STOCK" ]; then
   echo "ERROR: Stock was NOT rolled back!"
@@ -4258,46 +4215,21 @@ echo ""
 
 # 8. Verify no failed order exists in mall_order.orders
 echo "=== 8. 验证失败订单未落库 ==="
-# The failed order won't have a proper orderNo since it failed before save
-# But let's verify there are no unexpected orders
 ORDER_LIST=$(curl -s http://localhost:8083/api/order/list)
 echo "Current orders in system: $(echo $ORDER_LIST | grep -o '"orderNo"' | wc -l)"
 echo "✓ Verified no spurious orders from failed transaction"
 echo ""
 
-# 9. Check Seata undo_log tables for rollback evidence
-echo "=== 9. 检查 undo_log 表（回滚证据）==="
-echo "--- mall_product.undo_log ---"
-PRODUCT_UNDO=$(docker exec mall-mysql mysql -uroot -proot123 -e "SELECT COUNT(*) as cnt FROM mall_product.undo_log;" 2>/dev/null)
-echo "$PRODUCT_UNDO"
+# 9. Check logs for rollback evidence
+echo "=== 9. 检查服务日志中是否有回滚痕迹 ==="
+echo "--- mall-order log for rollback evidence ---"
+ROLLBACK_LOG=$(tail -200 /tmp/mall-logs/mall-order.log 2>/dev/null | grep -E "rollback|Rollback|回滚|branch" | tail -5 || echo "No rollback evidence found in mall-order log")
+echo "$ROLLBACK_LOG"
 echo ""
 
-echo "--- mall_order.undo_log ---"
-ORDER_UNDO=$(docker exec mall-mysql mysql -uroot -proot123 -e "SELECT COUNT(*) as cnt FROM mall_order.undo_log;" 2>/dev/null)
-echo "$ORDER_UNDO"
-echo ""
-
-# 10. Check Seata transaction tables
-echo "=== 10. 检查 Seata 事务表 ==="
-echo "--- global_table ---"
-GLOBAL_CNT=$(docker exec mall-mysql mysql -uroot -proot123 -e "SELECT COUNT(*) as cnt FROM mall_order.global_table;" 2>/dev/null | tail -1 | awk '{print $2}')
-echo "global_table count: $GLOBAL_CNT"
-
-echo "--- branch_table ---"
-BRANCH_CNT=$(docker exec mall-mysql mysql -uroot -proot123 -e "SELECT COUNT(*) as cnt FROM mall_order.branch_table;" 2>/dev/null | tail -1 | awk '{print $2}')
-echo "branch_table count: $BRANCH_CNT"
-echo ""
-
-# 11. Verify inventory log was NOT created for the failed order
-echo "=== 11. 验证失败订单的库存日志未创建或已回滚 ==="
-# Since the order failed, there should be no inventory log for it
-# But Seata may have logged it and rolled back, so check the net effect
-docker exec mall-mysql mysql -uroot -proot123 -e "
-  SELECT id, product_id, order_no, change_type, before_stock, after_stock, change_quantity
-  FROM mall_product.inventory_logs
-  WHERE order_no LIKE 'ORD%'
-  ORDER BY id DESC
-  LIMIT 5;" 2>/dev/null
+echo "--- seata-server log for rollback evidence ---"
+SEATA_ROLLBACK_LOG=$(docker logs mall-seata-server --tail 200 2>&1 | grep -E "rollback|Rollback|branch|Branch" | tail -5 || echo "No rollback evidence found in seata log")
+echo "$SEATA_ROLLBACK_LOG"
 echo ""
 
 echo "============================================"
@@ -4315,69 +4247,31 @@ echo "4. ✓ Seata AT 模式自动回滚生效"
 ================================================
 FILE: seata/application.yml
 ================================================
-server:
-  port: 7091
-  vgroupMapping:
-    default_tx_group: default
-  enableDegrade: false
-  disableGlobalTransaction: false
-
 seata:
   config:
-    type: nacos
-    nacos:
-      server-addr: nacos:8848
-      group: DEFAULT_GROUP
-      namespace: ""
-      data-id: seataServer.properties
+    type: file
   registry:
     type: nacos
     nacos:
-      server-addr: nacos:8848
+      application: seata-server
+      serverAddr: nacos:8848
       group: DEFAULT_GROUP
       namespace: ""
-      application: seata-server
+      cluster: default
   store:
-    mode: db
-    db:
-      datasource: druid
-      db-type: mysql
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://mysql:3306/mall_order?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      username: root
-      password: root123
-      global-table: global_table
-      branch-table: branch_table
-      lock-table: lock_table
-      distributed-lock-table: distributed_lock
-      query-limit: 100
-  transport:
-    rpcVerifyTimeout: 30000
-  client:
-    async.commit.buffer.limit: 10000
-    lock:
-      retry.internal: 10
-      retry.times: 30
+    mode: file
 
 
 
 ================================================
 FILE: seata/file.conf
 ================================================
-server {
-  vgroupMapping.my_seata_tx_group = "default"
-  enableDegrade = false
-  disableGlobalTransaction = false
+service {
+  vgroupMapping.default_tx_group = "default"
 }
 
-transport {
-  rpcVerifyTimeout = 30000
-}
-
-client {
-  async.commit.buffer.limit = 10000
-  lock.retry.internal = 10
-  lock.retry.times = 30
+store {
+  mode = "file"
 }
 
 
@@ -4389,7 +4283,7 @@ registry {
   type = "nacos"
   nacos {
     application = "seata-server"
-    serverAddr = "nacos"
+    serverAddr = "nacos:8848"
     group = "DEFAULT_GROUP"
     namespace = ""
     cluster = "default"
@@ -4397,12 +4291,7 @@ registry {
 }
 
 config {
-  type = "nacos"
-  nacos {
-    serverAddr = "nacos"
-    group = "DEFAULT_GROUP"
-    namespace = ""
-  }
+  type = "file"
 }
 
 
