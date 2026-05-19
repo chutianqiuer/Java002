@@ -216,6 +216,10 @@ rocketmq:
   name-server: localhost:9876
 ```
 
+#### 6. RocketMQ Broker 配置
+
+brokerIP1=127.0.0.1 确保外部客户端能连接到 broker。
+
 ---
 
 ## 禁止事项

@@ -82,11 +82,6 @@ services:
     networks:
       - mall-network
     command: sh mqnamesrv
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9876"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # RocketMQ Broker
   rocketmq-broker:
@@ -102,16 +97,12 @@ services:
     volumes:
       - rocketmq-broker-data:/home/rocketmq/broker/logs
       - rocketmq-broker-store:/home/rocketmq/broker/store
+      - ./rocketmq/broker.conf:/home/rocketmq/broker.conf
     networks:
       - mall-network
     depends_on:
       - rocketmq-namesrv
-    command: sh mqbroker -n rocketmq-namesrv:9876
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9876"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/broker.conf
 
 volumes:
   mysql-data:
