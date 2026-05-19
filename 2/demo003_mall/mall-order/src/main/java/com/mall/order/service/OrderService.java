@@ -59,7 +59,16 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         order.setTotalAmount(product.getPrice().multiply(java.math.BigDecimal.valueOf(order.getQuantity())));
         order.setOrderNo(orderNo);
         order.setStatus(OrderStatus.PENDING);
-        this.save(order);
+
+        // Try to save order, restore stock if failed
+        try {
+            this.save(order);
+        } catch (Exception e) {
+            // Compensate: restore stock
+            productRpcService.restoreStock(order.getProductId(), order.getQuantity(), orderNo);
+            throw e;
+        }
+
         return order;
     }
 
