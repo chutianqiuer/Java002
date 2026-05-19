@@ -24,3 +24,6 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+rocketmq:
+  name-server: localhost:9876

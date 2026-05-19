@@ -7,6 +7,7 @@ import com.mall.common.entity.Order;
 import com.mall.common.entity.Product;
 import com.mall.common.entity.User;
 import com.mall.common.constants.OrderStatus;
+import com.mall.common.event.OrderCreatedEvent;
 import com.mall.common.rpc.ProductRpcService;
 import com.mall.common.rpc.UserRpcService;
 import com.mall.order.mapper.OrderMapper;
@@ -27,6 +28,8 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
 
     @DubboReference(check = false)
     private ProductRpcService productRpcService;
+
+    private final OrderEventProducer orderEventProducer;
 
     public Order createOrder(Order order) {
         // Validate user exists via Dubbo RPC
@@ -68,6 +71,16 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             productRpcService.restoreStock(order.getProductId(), order.getQuantity(), orderNo);
             throw e;
         }
+
+        // Send OrderCreatedEvent after order saved successfully
+        OrderCreatedEvent event = new OrderCreatedEvent();
+        event.setOrderNo(order.getOrderNo());
+        event.setUserId(order.getUserId());
+        event.setProductId(order.getProductId());
+        event.setQuantity(order.getQuantity());
+        event.setTotalAmount(order.getTotalAmount());
+        event.setCreateTime(java.time.LocalDateTime.now().toString());
+        orderEventProducer.sendOrderCreatedEvent(event);
 
         return order;
     }

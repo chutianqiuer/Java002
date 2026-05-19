@@ -36,6 +36,7 @@
         <mysql.version>8.0.33</mysql.version>
         <spring-cloud-alibaba.version>2021.0.5.0</spring-cloud-alibaba.version>
         <dubbo.version>3.1.10</dubbo.version>
+        <rocketmq.version>2.0.4</rocketmq.version>
     </properties>
 
     <dependencyManagement>
@@ -121,6 +122,13 @@
                 <groupId>org.apache.dubbo</groupId>
                 <artifactId>dubbo-spring-boot-starter</artifactId>
                 <version>${dubbo.version}</version>
+            </dependency>
+
+            <!-- RocketMQ -->
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-spring-boot-starter</artifactId>
+                <version>${rocketmq.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

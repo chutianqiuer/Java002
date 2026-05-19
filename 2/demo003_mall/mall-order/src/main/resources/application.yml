@@ -33,3 +33,8 @@ dubbo:
     port: 20883
   registry:
     address: nacos://localhost:8848
+
+rocketmq:
+  name-server: localhost:9876
+  producer:
+    group: mall-order-producer

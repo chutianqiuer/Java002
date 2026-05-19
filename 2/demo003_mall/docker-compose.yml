@@ -66,11 +66,62 @@ services:
     networks:
       - mall-network
 
+  # RocketMQ NameServer
+  rocketmq-namesrv:
+    image: apache/rocketmq:4.9.5
+    container_name: mall-rocketmq-namesrv
+    restart: unless-stopped
+    environment:
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Xmn256m"
+      TZ: Asia/Shanghai
+    ports:
+      - "9876:9876"
+    volumes:
+      - rocketmq-namesrv-data:/home/rocketmq/namesrv/logs
+      - rocketmq-namesrv-store:/home/rocketmq/namesrv/store
+    networks:
+      - mall-network
+    command: sh mqnamesrv
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9876"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RocketMQ Broker
+  rocketmq-broker:
+    image: apache/rocketmq:4.9.5
+    container_name: mall-rocketmq-broker
+    restart: unless-stopped
+    environment:
+      JAVA_OPT_EXT: "-Xms1g -Xmx1g -Xmn512m"
+      TZ: Asia/Shanghai
+    ports:
+      - "10911:10911"
+      - "10909:10909"
+    volumes:
+      - rocketmq-broker-data:/home/rocketmq/broker/logs
+      - rocketmq-broker-store:/home/rocketmq/broker/store
+    networks:
+      - mall-network
+    depends_on:
+      - rocketmq-namesrv
+    command: sh mqbroker -n rocketmq-namesrv:9876
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9876"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   mysql-data:
   redis-data:
   nacos-data:
   nacos-logs:
+  rocketmq-namesrv-data:
+  rocketmq-namesrv-store:
+  rocketmq-broker-data:
+  rocketmq-broker-store:
 
 networks:
   mall-network:
